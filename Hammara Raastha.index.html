@@ -1,0 +1,2541 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traffic Safety App</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    html, body, .app-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    .app-container {
+      background: #f0f4f8;
+      overflow-y: auto;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      min-height: 100%;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    /* Splash Screen */
+    .splash-screen {
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .splash-screen::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      background: linear-gradient(to top, rgba(31, 41, 55, 0.9), transparent);
+      z-index: 1;
+    }
+
+    .splash-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .traffic-animation {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin-bottom: 40px;
+    }
+
+    .road {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      background: #4b5563;
+      border-radius: 10px;
+    }
+
+    .road-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: repeating-linear-gradient(
+        to right,
+        #fff 0px,
+        #fff 30px,
+        transparent 30px,
+        transparent 50px
+      );
+      animation: moveLine 2s linear infinite;
+    }
+
+    @keyframes moveLine {
+      from { transform: translateX(0); }
+      to { transform: translateX(50px); }
+    }
+
+    .traffic-light {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 140px;
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .light {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #374151;
+      transition: all 0.5s ease;
+    }
+
+    .light.red.active { background: #ef4444; box-shadow: 0 0 20px #ef4444; }
+    .light.yellow.active { background: #fbbf24; box-shadow: 0 0 20px #fbbf24; }
+    .light.green.active { background: #22c55e; box-shadow: 0 0 20px #22c55e; }
+
+    .car {
+      position: absolute;
+      bottom: 90px;
+      font-size: 50px;
+      animation: moveCar 4s ease-in-out infinite;
+    }
+
+    @keyframes moveCar {
+      0%, 100% { left: -60px; }
+      50% { left: calc(100% + 20px); }
+    }
+
+    .bus {
+      position: absolute;
+      bottom: 85px;
+      font-size: 60px;
+      animation: moveBus 6s ease-in-out infinite;
+      animation-delay: 2s;
+    }
+
+    @keyframes moveBus {
+      0%, 100% { right: -80px; }
+      50% { right: calc(100% + 40px); }
+    }
+
+    .bike {
+      position: absolute;
+      bottom: 95px;
+      font-size: 40px;
+      animation: moveBike 3s ease-in-out infinite;
+      animation-delay: 1s;
+    }
+
+    @keyframes moveBike {
+      0%, 100% { left: -50px; }
+      50% { left: calc(100% + 20px); }
+    }
+
+    .splash-title {
+      font-size: 36px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .splash-subtitle {
+      font-size: 18px;
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+    }
+
+    /* Login Screen */
+    .login-screen {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #8b5cf6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-screen::before {
+      content: '🚗 🚌 🏍️ 🚕 🚙 🚓 🚑 🚒';
+      position: absolute;
+      top: 20%;
+      left: -100%;
+      font-size: 40px;
+      animation: trafficFlow 20s linear infinite;
+      opacity: 0.15;
+      white-space: nowrap;
+    }
+
+    .login-screen::after {
+      content: '🛣️ 🚦 ⚠️ 🛑 📍 🚸 ⛽ 🏁';
+      position: absolute;
+      bottom: 20%;
+      right: -100%;
+      font-size: 40px;
+      animation: trafficFlow2 18s linear infinite;
+      opacity: 0.15;
+      white-space: nowrap;
+    }
+
+    @keyframes trafficFlow {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    @keyframes trafficFlow2 {
+      0% { right: -100%; }
+      100% { right: 100%; }
+    }
+
+    .login-container {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 2;
+    }
+
+    .safety-badge {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #78350f;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-icon {
+      font-size: 72px;
+      margin-bottom: 16px;
+    }
+
+    .login-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background: #f8fafc;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+
+    .login-button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    .login-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+    }
+
+    .error-message {
+      background: #fef2f2;
+      color: #dc2626;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-top: 16px;
+      border: 1px solid #fecaca;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    /* Dashboard Screen */
+    .dashboard-screen {
+      background: linear-gradient(180deg, #2563eb 0%, #1e40af 35%, #dbeafe 35%, #eff6ff 100%);
+      position: relative;
+    }
+
+    .dashboard-screen::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 35%;
+      background-image: 
+        repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(255,255,255,0.03) 10px, rgba(255,255,255,0.03) 20px);
+      pointer-events: none;
+    }
+
+    .dashboard-header {
+      padding: 32px 24px;
+      color: white;
+      position: relative;
+    }
+
+    .dashboard-welcome {
+      font-size: 16px;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+
+    .dashboard-title {
+      font-size: 32px;
+      font-weight: 800;
+    }
+
+    .logout-button {
+      position: absolute;
+      top: 32px;
+      right: 24px;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: white;
+      font-size: 14px;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logout-button:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.6);
+    }
+
+    .dashboard-content {
+      padding: 24px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .dashboard-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+    }
+
+    .dashboard-card-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+
+    .dashboard-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    /* Traffic Rules Screen */
+    .content-screen {
+      background: #f0f4f8;
+      min-height: 100%;
+    }
+
+    .content-header {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      padding: 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .back-button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 24px;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .back-button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .content-title {
+      font-size: 24px;
+      font-weight: 800;
+      flex: 1;
+    }
+
+    .add-place-button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-place-button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .content-body {
+      padding: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .rule-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .rule-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+
+    .rule-icon {
+      font-size: 32px;
+    }
+
+    .rule-text {
+      font-size: 15px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    /* Cities List */
+    .city-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .city-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .city-card:hover {
+      transform: translateX(8px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .city-icon {
+      font-size: 48px;
+    }
+
+    .city-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+      flex: 1;
+    }
+
+    .city-arrow {
+      font-size: 24px;
+      color: #3b82f6;
+    }
+
+    /* Areas List */
+    .area-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .area-icon {
+      font-size: 32px;
+    }
+
+    .area-info {
+      flex: 1;
+    }
+
+    .area-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    .area-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Social Services / Report Screen */
+    .photo-upload-area {
+      background: white;
+      border: 3px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 24px;
+    }
+
+    .photo-upload-area:hover {
+      border-color: #3b82f6;
+      background: #f8fafc;
+    }
+
+    .photo-upload-area.has-photo {
+      border-style: solid;
+      border-color: #22c55e;
+      background: #f0fdf4;
+      padding: 0;
+    }
+
+    .upload-icon {
+      font-size: 72px;
+      margin-bottom: 16px;
+    }
+
+    .upload-text {
+      font-size: 18px;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .upload-subtext {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    .photo-preview {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 16px;
+    }
+
+    .issue-selector {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .issue-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .issue-option {
+      padding: 16px 12px;
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .issue-option:hover {
+      border-color: #cbd5e1;
+    }
+
+    .issue-option.selected {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+
+    .issue-option-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .issue-option-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .submit-button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    .submit-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+    }
+
+    .submit-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .cancel-button {
+      width: 100%;
+      padding: 18px;
+      background: #e2e8f0;
+      color: #475569;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .cancel-button:hover {
+      background: #cbd5e1;
+      transform: translateY(-2px);
+    }
+
+    .service-tab {
+      flex: 1;
+      padding: 16px;
+      background: white;
+      border: none;
+      border-bottom: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #64748b;
+      transition: all 0.3s ease;
+    }
+
+    .service-tab:hover {
+      background: #f8fafc;
+    }
+
+    .service-tab.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+      background: #eff6ff;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Recent Reports */
+    .report-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+    }
+
+    .report-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    .report-image {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+    }
+
+    .report-content {
+      padding: 20px;
+    }
+
+    .report-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background: #fee2e2;
+      color: #991b1b;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .report-location {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .report-description {
+      font-size: 15px;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .report-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .report-user {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eff6ff;
+      color: #1e40af;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .directions-button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      margin-bottom: 10px;
+    }
+
+    .directions-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+    }
+
+    .delete-button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .delete-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+    }
+
+    .delete-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+    }
+
+    .empty-icon {
+      font-size: 80px;
+      margin-bottom: 16px;
+    }
+
+    .empty-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .empty-subtext {
+      font-size: 15px;
+      color: #94a3b8;
+    }
+
+    /* Rule Details Styles */
+    .detail-section {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .detail-icon {
+      font-size: 32px;
+    }
+
+    .detail-heading {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .detail-content {
+      font-size: 15px;
+      color: #475569;
+      line-height: 1.8;
+    }
+
+    .detail-content strong {
+      color: #1e293b;
+      font-weight: 700;
+    }
+
+    .detail-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0;
+    }
+
+    .detail-list li {
+      padding: 10px 0;
+      padding-left: 30px;
+      position: relative;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .detail-list li:last-child {
+      border-bottom: none;
+    }
+
+    .detail-list li:before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #22c55e;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .fine-box {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-left: 4px solid #f59e0b;
+      padding: 16px;
+      border-radius: 10px;
+      margin: 16px 0;
+    }
+
+    .fine-amount {
+      font-size: 24px;
+      font-weight: 800;
+      color: #92400e;
+      margin-bottom: 6px;
+    }
+
+    .fine-text {
+      font-size: 14px;
+      color: #78350f;
+      font-weight: 600;
+    }
+
+    .law-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 16px;
+      border-radius: 10px;
+      margin: 16px 0;
+    }
+
+    .law-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 8px;
+    }
+
+    .law-text {
+      font-size: 14px;
+      color: #1e3a8a;
+      line-height: 1.6;
+    }
+
+    .warning-box {
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      padding: 16px;
+      border-radius: 10px;
+      margin: 16px 0;
+    }
+
+    .warning-text {
+      font-size: 14px;
+      color: #991b1b;
+      font-weight: 600;
+      line-height: 1.6;
+    }
+
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #22c55e;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+      z-index: 1000;
+      animation: slideDown 0.4s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-height: 80%;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .modal-cancel {
+      flex: 1;
+      padding: 14px;
+      background: #e2e8f0;
+      color: #475569;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .modal-cancel:hover {
+      background: #cbd5e1;
+    }
+
+    .modal-submit {
+      flex: 1;
+      padding: 14px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .modal-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    .modal-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full">
+  <div class="app-container"><!-- Splash Screen -->
+   <div class="screen active" id="splashScreen">
+    <div class="splash-screen">
+     <div class="traffic-animation">
+      <div class="traffic-light">
+       <div class="light red" id="redLight"></div>
+       <div class="light yellow" id="yellowLight"></div>
+       <div class="light green" id="greenLight"></div>
+      </div>
+      <div class="car">
+       🚗
+      </div>
+      <div class="bus">
+       🚌
+      </div>
+      <div class="bike">
+       🏍️
+      </div>
+      <div class="road">
+       <div class="road-line"></div>
+      </div>
+     </div>
+     <div class="splash-content">
+      <h1 class="splash-title" id="splashTitle">Traffic Safety App</h1>
+      <p class="splash-subtitle">Building Safer Roads Together</p>
+     </div>
+    </div>
+   </div><!-- Login Screen -->
+   <div class="screen" id="loginScreen">
+    <div class="login-screen">
+     <div class="login-container">
+      <div class="login-header">
+       <div class="login-icon">
+        🚦
+       </div>
+       <div class="safety-badge"><span>🛡️</span> <span>ROAD SAFETY PORTAL</span>
+       </div>
+       <h2 class="login-title">Welcome Back</h2>
+       <p class="login-subtitle">Secure login for traffic safety monitoring</p>
+      </div>
+      <form id="loginForm">
+       <div class="form-group"><label for="username" class="form-label">Username</label> <input type="text" id="username" class="form-input" placeholder="Enter username" required>
+       </div>
+       <div class="form-group"><label for="password" class="form-label">Password</label> <input type="password" id="password" class="form-input" placeholder="Enter password" required>
+       </div><button type="submit" class="login-button">Login</button>
+       <div class="error-message" id="errorMessage">
+        ⚠️ Invalid username or password
+       </div>
+      </form>
+     </div>
+    </div>
+   </div><!-- Dashboard Screen -->
+   <div class="screen" id="dashboardScreen">
+    <div class="dashboard-screen">
+     <div class="dashboard-header"><button class="logout-button" onclick="logout()"> <span>🚪</span> <span>Logout</span> </button>
+      <p class="dashboard-welcome">Welcome back,</p>
+      <h1 class="dashboard-title" id="dashboardUserName">Pragathi</h1>
+     </div>
+     <div class="dashboard-content">
+      <div class="dashboard-grid">
+       <div class="dashboard-card" onclick="showTrafficRules()">
+        <div class="dashboard-card-icon">
+         📋
+        </div>
+        <div class="dashboard-card-title">
+         Traffic Rules
+        </div>
+       </div>
+       <div class="dashboard-card" onclick="showTrafficAreas()">
+        <div class="dashboard-card-icon">
+         🗺️
+        </div>
+        <div class="dashboard-card-title">
+         Traffic Areas
+        </div>
+       </div>
+       <div class="dashboard-card" onclick="showSocialServices()">
+        <div class="dashboard-card-icon">
+         🛠️
+        </div>
+        <div class="dashboard-card-title">
+         Social Services
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div><!-- Traffic Rules Screen -->
+   <div class="screen" id="trafficRulesScreen">
+    <div class="content-screen">
+     <div class="content-header"><button class="back-button" onclick="showDashboard()">←</button>
+      <h2 class="content-title">Traffic Rules</h2>
+     </div>
+     <div class="content-body">
+      <div class="rule-card" onclick="showRuleDetails('helmet')">
+       <div class="rule-title"><span class="rule-icon">🛑</span> <span>Always Wear Helmet</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Wearing a helmet reduces the risk of head injury by 70%. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('signal')">
+       <div class="rule-title"><span class="rule-icon">🚦</span> <span>Obey Traffic Signals</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Always stop at red lights and follow traffic signals. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('speed')">
+       <div class="rule-title"><span class="rule-icon">⚡</span> <span>Speed Limits</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Follow prescribed speed limits to ensure safety. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('seatbelt')">
+       <div class="rule-title"><span class="rule-icon">🔒</span> <span>Wear Seat Belt</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Seat belts reduce the risk of fatal injury by 50%. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('drunk')">
+       <div class="rule-title"><span class="rule-icon">🚫</span> <span>No Drunk Driving</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Never drive under the influence of alcohol or drugs. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('mobile')">
+       <div class="rule-title"><span class="rule-icon">📱</span> <span>No Mobile While Driving</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Using mobile phones while driving is illegal and dangerous. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('triple')">
+       <div class="rule-title"><span class="rule-icon">👥</span> <span>No Triple Riding</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Two-wheelers are designed for two people only. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('pedestrian')">
+       <div class="rule-title"><span class="rule-icon">🚶</span> <span>Respect Pedestrians</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Always give way to pedestrians at zebra crossings. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('license')">
+       <div class="rule-title"><span class="rule-icon">🪪</span> <span>Valid Driving License</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Always carry a valid driving license while driving. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('insurance')">
+       <div class="rule-title"><span class="rule-icon">📄</span> <span>Vehicle Insurance</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Valid insurance is mandatory for all vehicles. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('parking')">
+       <div class="rule-title"><span class="rule-icon">🅿️</span> <span>No Wrong Parking</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Park only in designated areas to avoid fines. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('redlight')">
+       <div class="rule-title"><span class="rule-icon">🔴</span> <span>No Red Light Jumping</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Jumping red lights is a serious offense. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('overtake')">
+       <div class="rule-title"><span class="rule-icon">↔️</span> <span>Safe Overtaking</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Overtake only when safe and use indicators. Tap to view details.</p>
+      </div>
+      <div class="rule-card" onclick="showRuleDetails('pollution')">
+       <div class="rule-title"><span class="rule-icon">🌿</span> <span>Pollution Certificate</span> <span style="margin-left: auto; font-size: 20px; color: #3b82f6;">→</span>
+       </div>
+       <p class="rule-text">Valid PUC certificate is mandatory for all vehicles. Tap to view details.</p>
+      </div>
+     </div>
+    </div>
+   </div><!-- Traffic Rule Details Screen -->
+   <div class="screen" id="ruleDetailsScreen">
+    <div class="content-screen">
+     <div class="content-header"><button class="back-button" onclick="showTrafficRules()">←</button>
+      <h2 class="content-title" id="ruleDetailsTitle">Rule Details</h2>
+     </div>
+     <div class="content-body" id="ruleDetailsContent"></div>
+    </div>
+   </div><!-- Traffic Areas Screen -->
+   <div class="screen" id="trafficAreasScreen">
+    <div class="content-screen">
+     <div class="content-header"><button class="back-button" onclick="showDashboard()">←</button>
+      <h2 class="content-title">Traffic Areas</h2><button class="add-place-button" id="addCityButton" style="display: none;" onclick="showAddCityModal()"> <span>➕</span> <span>Add City</span> </button>
+     </div>
+     <div class="content-body">
+      <div class="city-list" id="cityList"></div>
+     </div>
+    </div>
+   </div><!-- City Areas Screen -->
+   <div class="screen" id="cityAreasScreen">
+    <div class="content-screen">
+     <div class="content-header"><button class="back-button" onclick="showTrafficAreas()">←</button>
+      <h2 class="content-title" id="cityAreasTitle">City - Traffic Areas</h2><button class="add-place-button" id="addAreaButton" style="display: none;" onclick="showAddAreaModal()"> <span>➕</span> <span>Add Area</span> </button>
+     </div>
+     <div class="content-body">
+      <div id="areasList"></div>
+     </div>
+    </div>
+   </div><!-- Social Services / Report Screen -->
+   <div class="screen" id="socialServicesScreen">
+    <div class="content-screen">
+     <div class="content-header"><button class="back-button" onclick="showDashboard()">←</button>
+      <h2 class="content-title">Social Services</h2>
+     </div><!-- Tabs -->
+     <div style="display: flex; background: white; border-bottom: 2px solid #e2e8f0;"><button class="service-tab active" onclick="switchServiceTab('report')" id="reportTab"> <span style="font-size: 20px;">📝</span> <span>Report Issue</span> </button> <button class="service-tab" onclick="switchServiceTab('submissions')" id="submissionsTab"> <span style="font-size: 20px;">📋</span> <span>Recent Reports</span> </button>
+     </div><!-- Report Tab Content -->
+     <div class="tab-content active" id="reportTabContent">
+      <div class="content-body">
+       <form id="reportForm"><input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;">
+        <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('photoInput').click()">
+         <div id="uploadPrompt">
+          <div class="upload-icon">
+           📷
+          </div>
+          <div class="upload-text">
+           Tap to Capture Photo
+          </div>
+          <div class="upload-subtext">
+           Open camera to take a photo
+          </div>
+         </div><img id="photoPreview" class="photo-preview" style="display: none;" alt="Photo preview">
+        </div>
+        <div class="issue-selector"><label class="form-label">Select Issue Type</label>
+         <div class="issue-grid">
+          <div class="issue-option selected" data-issue="Pothole" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+            🕳️
+           </div>
+           <div class="issue-option-text">
+            Pothole
+           </div>
+          </div>
+          <div class="issue-option" data-issue="Traffic Signal" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+            🚦
+           </div>
+           <div class="issue-option-text">
+            Traffic Signal
+           </div>
+          </div>
+          <div class="issue-option" data-issue="Broken Road" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+            🚧
+           </div>
+           <div class="issue-option-text">
+            Broken Road
+           </div>
+          </div>
+          <div class="issue-option" data-issue="Missing Zebra Crossing" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+            ⚠️
+           </div>
+           <div class="issue-option-text">
+            Missing Zebra Crossing
+           </div>
+          </div>
+          <div class="issue-option" data-issue="Street Light" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+               
+           </div>
+           <div class="issue-option-text">
+            Street Light
+           </div>
+          </div>
+          <div class="issue-option" data-issue="Open Manhole" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+            🔴
+           </div>
+           <div class="issue-option-text">
+            Open Manhole
+           </div>
+          </div>
+          <div class="issue-option" data-issue="Missing Road Sign" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+            🪧
+           </div>
+           <div class="issue-option-text">
+            Missing Road Sign
+           </div>
+          </div>
+          <div class="issue-option" data-issue="Other Damage" onclick="selectIssue(this)">
+           <div class="issue-option-icon">
+            ⚡
+           </div>
+           <div class="issue-option-text">
+            Other Damage
+           </div>
+          </div>
+         </div>
+        </div>
+        <div class="form-group"><label for="reportLocation" class="form-label">📍 Location</label> <input type="text" id="reportLocation" class="form-input" placeholder="Enter location" required>
+        </div>
+        <div class="form-group"><label for="reportDescription" class="form-label">📝 Description</label> <textarea id="reportDescription" class="form-input" placeholder="Describe the issue in detail" rows="4" required></textarea>
+        </div>
+        <div style="display: flex; gap: 12px;"><button type="button" class="cancel-button" onclick="cancelReport()">Cancel</button> <button type="submit" class="submit-button" id="submitButton">Submit Report</button>
+        </div>
+       </form>
+      </div>
+     </div><!-- Recent Reports Tab Content -->
+     <div class="tab-content" id="submissionsTabContent">
+      <div class="content-body" id="recentReportsContainer"></div>
+     </div>
+    </div>
+   </div><!-- Add City Modal -->
+   <div class="modal-overlay" id="addCityModal">
+    <div class="modal-content">
+     <h2 class="modal-title">Add New City</h2>
+     <form id="addCityForm">
+      <div class="form-group"><label for="cityName" class="form-label">City Name</label> <input type="text" id="cityName" class="form-input" placeholder="Enter city name" required>
+      </div>
+      <div class="form-group"><label for="cityIcon" class="form-label">Select Icon</label>
+       <div class="issue-grid">
+        <div class="issue-option selected" data-icon="🏙️" onclick="selectCityIcon(this)">
+         <div class="issue-option-icon">
+          🏙️
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🌆" onclick="selectCityIcon(this)">
+         <div class="issue-option-icon">
+          🌆
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🏛️" onclick="selectCityIcon(this)">
+         <div class="issue-option-icon">
+          🏛️
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🌃" onclick="selectCityIcon(this)">
+         <div class="issue-option-icon">
+          🌃
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeAddCityModal()">Cancel</button> <button type="submit" class="modal-submit" id="addCitySubmit">Add City</button>
+      </div>
+     </form>
+    </div>
+   </div><!-- Add Area Modal -->
+   <div class="modal-overlay" id="addAreaModal">
+    <div class="modal-content">
+     <h2 class="modal-title">Add New Traffic Area</h2>
+     <form id="addAreaForm">
+      <div class="form-group"><label for="areaName" class="form-label">Area Name</label> <input type="text" id="areaName" class="form-input" placeholder="Enter area name" required>
+      </div>
+      <div class="form-group"><label for="areaIcon" class="form-label">Select Icon</label>
+       <div class="issue-grid">
+        <div class="issue-option selected" data-icon="   " onclick="selectAreaIcon(this)">
+         <div class="issue-option-icon">
+          ⚓
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🌉" onclick="selectAreaIcon(this)">
+         <div class="issue-option-icon">
+          🌉
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🏛️" onclick="selectAreaIcon(this)">
+         <div class="issue-option-icon">
+          🏛️
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🎓" onclick="selectAreaIcon(this)">
+         <div class="issue-option-icon">
+          🎓
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🍴" onclick="selectAreaIcon(this)">
+         <div class="issue-option-icon">
+          🍴
+         </div>
+        </div>
+        <div class="issue-option" data-icon="🏪" onclick="selectAreaIcon(this)">
+         <div class="issue-option-icon">
+          🏪
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeAddAreaModal()">Cancel</button> <button type="submit" class="modal-submit" id="addAreaSubmit">Add Area</button>
+      </div>
+     </form>
+    </div>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      app_title: "Traffic Safety App"
+    };
+
+    let selectedPhoto = null;
+    let selectedIssueType = "Pothole";
+    let currentUser = null;
+    let isAdmin = false;
+    let allData = [];
+    let currentCity = "";
+    let selectedCityIcon = "🏙️";
+    let selectedAreaIcon = "⚓";
+
+    // Issue type photos mapping
+    const issuePhotos = {
+      'Pothole': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23333" width="400" height="300"/%3E%3Cellipse cx="200" cy="180" rx="80" ry="40" fill="%23222"/%3E%3Cellipse cx="200" cy="180" rx="60" ry="30" fill="%23111"/%3E%3Ctext x="200" y="40" font-size="20" fill="%23fff" text-anchor="middle" font-family="Arial"%3EPothole on Road%3C/text%3E%3C/svg%3E',
+      'Traffic Signal': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%234a5568" width="400" height="300"/%3E%3Crect x="150" y="80" width="100" height="150" rx="10" fill="%231a202c"/%3E%3Ccircle cx="200" cy="110" r="20" fill="%23dc2626"/%3E%3Ccircle cx="200" cy="150" r="20" fill="%23fbbf24"/%3E%3Ccircle cx="200" cy="190" r="20" fill="%23374151"/%3E%3Ctext x="200" y="260" font-size="18" fill="%23fff" text-anchor="middle"%3ENon-Working Signal%3C/text%3E%3C/svg%3E',
+      'Broken Road': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23444" width="400" height="300"/%3E%3Cpath d="M50 150 Q100 120, 150 150 T250 150 T350 150" stroke="%23666" stroke-width="60" fill="none"/%3E%3Cpath d="M100 140 L120 180 L140 140 L160 180" fill="%23222"/%3E%3Cpath d="M220 150 L240 190 L260 150" fill="%23222"/%3E%3Ctext x="200" y="40" font-size="20" fill="%23fff" text-anchor="middle"%3EBroken Road Surface%3C/text%3E%3C/svg%3E',
+      'Missing Zebra Crossing': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23555" width="400" height="300"/%3E%3Crect y="120" width="400" height="60" fill="%23444"/%3E%3Ctext x="200" y="100" font-size="18" fill="%23fff" text-anchor="middle"%3ENo Zebra Crossing%3C/text%3E%3Ctext x="200" y="250" font-size="16" fill="%23fbbf24" text-anchor="middle"%3EPedestrian Crossing Missing%3C/text%3E%3C/svg%3E',
+      'Street Light': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%231a1a2e" width="400" height="300"/%3E%3Crect x="180" y="80" width="40" height="180" fill="%23333"/%3E%3Ccircle cx="200" cy="70" r="25" fill="%23555"/%3E%3Ctext x="200" y="280" font-size="18" fill="%23fff" text-anchor="middle"%3ENon-Working Street Light%3C/text%3E%3C/svg%3E',
+      'Open Manhole': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23666" width="400" height="300"/%3E%3Ccircle cx="200" cy="150" r="60" fill="%23222"/%3E%3Ccircle cx="200" cy="150" r="50" fill="%23111"/%3E%3Ctext x="200" y="50" font-size="20" fill="%23fff" text-anchor="middle"%3EOpen Manhole%3C/text%3E%3Ctext x="200" y="260" font-size="16" fill="%23ef4444" text-anchor="middle"%3EDANGER%3C/text%3E%3C/svg%3E',
+      'Missing Road Sign': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%235a5a5a" width="400" height="300"/%3E%3Crect x="180" y="150" width="40" height="120" fill="%23333"/%3E%3Crect x="160" y="130" width="80" height="40" rx="5" fill="%23777" stroke="%23999" stroke-width="2"/%3E%3Ctext x="200" y="280" font-size="18" fill="%23fff" text-anchor="middle"%3EMissing Road Sign%3C/text%3E%3C/svg%3E',
+      'Other Damage': 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23444" width="400" height="300"/%3E%3Cpath d="M100 200 L150 150 L200 180 L250 140 L300 200" stroke="%23666" stroke-width="50" fill="none"/%3E%3Ctext x="200" y="80" font-size="20" fill="%23fff" text-anchor="middle"%3ERoad Damage%3C/text%3E%3Ctext x="200" y="270" font-size="16" fill="%23fbbf24" text-anchor="middle"%3ENeeds Repair%3C/text%3E%3C/svg%3E'
+    };
+
+    // Initialize app
+    async function initApp() {
+      // Initialize Data SDK
+      const dataHandler = {
+        onDataChanged(data) {
+          allData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          renderRecentReports();
+          renderCities();
+          renderAreas();
+        }
+      };
+
+      const initResult = await window.dataSdk.init(dataHandler);
+      if (!initResult.isOk) {
+        console.error("Failed to initialize data SDK");
+      }
+
+      // Initialize Element SDK
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange: async (config) => {
+            const title = config.app_title || defaultConfig.app_title;
+            document.getElementById('splashTitle').textContent = title;
+          },
+          mapToCapabilities: () => ({
+            recolorables: [],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ["app_title", config.app_title || defaultConfig.app_title]
+          ])
+        });
+      }
+
+      // Start splash screen animation
+      startTrafficLightAnimation();
+
+      // Set default photo for Pothole
+      selectedPhoto = issuePhotos['Pothole'];
+      const preview = document.getElementById('photoPreview');
+      const uploadArea = document.getElementById('photoUploadArea');
+      const uploadPrompt = document.getElementById('uploadPrompt');
+      
+      preview.src = selectedPhoto;
+      preview.style.display = 'block';
+      uploadPrompt.style.display = 'none';
+      uploadArea.classList.add('has-photo');
+
+      // Auto navigate to login after 3 seconds
+      setTimeout(() => {
+        showScreen('loginScreen');
+      }, 3000);
+    }
+
+    // Traffic light animation
+    function startTrafficLightAnimation() {
+      const lights = ['red', 'yellow', 'green'];
+      let currentIndex = 0;
+
+      function cycleLights() {
+        lights.forEach(color => {
+          document.getElementById(`${color}Light`).classList.remove('active');
+        });
+        document.getElementById(`${lights[currentIndex]}Light`).classList.add('active');
+        currentIndex = (currentIndex + 1) % lights.length;
+      }
+
+      cycleLights();
+      setInterval(cycleLights, 1500);
+    }
+
+    // Login form handler
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('errorMessage');
+
+      if ((username === 'Pragathi' && password === 'Civil') || (username === 'admin' && password === 'admin')) {
+        currentUser = username;
+        isAdmin = (username === 'admin');
+        
+        document.getElementById('dashboardUserName').textContent = isAdmin ? 'Admin' : username;
+        
+        // Show/hide admin buttons
+        document.getElementById('addCityButton').style.display = isAdmin ? 'flex' : 'none';
+        document.getElementById('addAreaButton').style.display = isAdmin ? 'flex' : 'none';
+        
+        errorMessage.classList.remove('show');
+        showScreen('dashboardScreen');
+      } else {
+        errorMessage.classList.add('show');
+      }
+    });
+
+    // Photo upload handler
+    document.getElementById('photoInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          selectedPhoto = event.target.result;
+          const preview = document.getElementById('photoPreview');
+          const uploadArea = document.getElementById('photoUploadArea');
+          const uploadPrompt = document.getElementById('uploadPrompt');
+          
+          preview.src = selectedPhoto;
+          preview.style.display = 'block';
+          uploadPrompt.style.display = 'none';
+          uploadArea.classList.add('has-photo');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Issue selection with photo
+    function selectIssue(element) {
+      document.querySelectorAll('.issue-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      element.classList.add('selected');
+      selectedIssueType = element.dataset.issue;
+      
+      selectedPhoto = issuePhotos[selectedIssueType];
+      const preview = document.getElementById('photoPreview');
+      const uploadArea = document.getElementById('photoUploadArea');
+      const uploadPrompt = document.getElementById('uploadPrompt');
+      
+      preview.src = selectedPhoto;
+      preview.style.display = 'block';
+      uploadPrompt.style.display = 'none';
+      uploadArea.classList.add('has-photo');
+    }
+
+    // Report form submission
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const location = document.getElementById('reportLocation').value;
+      const description = document.getElementById('reportDescription').value;
+      
+      const submitButton = document.getElementById('submitButton');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Submitting...';
+
+      // Use the currently displayed photo (either uploaded or issue type photo)
+      const photoToSubmit = selectedPhoto;
+
+      const result = await window.dataSdk.create({
+        type: 'report',
+        issue_type: selectedIssueType,
+        location: location,
+        description: description,
+        photo: photoToSubmit,
+        timestamp: new Date().toISOString(),
+        username: currentUser
+      });
+
+      submitButton.disabled = false;
+      submitButton.textContent = 'Submit Report';
+
+      if (result.isOk) {
+        showToast('✓ Report submitted successfully!');
+        
+        // Reset form
+        document.getElementById('reportForm').reset();
+        document.getElementById('photoPreview').style.display = 'none';
+        document.getElementById('uploadPrompt').style.display = 'block';
+        document.getElementById('photoUploadArea').classList.remove('has-photo');
+        
+        // Reset issue selection to Pothole
+        document.querySelectorAll('.issue-option').forEach(opt => opt.classList.remove('selected'));
+        document.querySelector('.issue-option').classList.add('selected');
+        selectedIssueType = 'Pothole';
+        selectedPhoto = issuePhotos['Pothole'];
+        
+        // Show photo preview again for Pothole
+        const preview = document.getElementById('photoPreview');
+        const uploadArea = document.getElementById('photoUploadArea');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        preview.src = selectedPhoto;
+        preview.style.display = 'block';
+        uploadPrompt.style.display = 'none';
+        uploadArea.classList.add('has-photo');
+        
+        // Navigate to Recent Reports tab
+        setTimeout(() => {
+          switchServiceTab('submissions');
+        }, 1000);
+      } else {
+        showToast('Failed to submit report. Please try again.', '#ef4444');
+      }
+    });
+
+    // Render recent reports
+    function renderRecentReports() {
+      const container = document.getElementById('recentReportsContainer');
+      
+      // Filter reports based on user
+      const reports = allData.filter(item => item.type === 'report');
+      const filteredReports = isAdmin ? reports : reports.filter(r => r.username === currentUser);
+
+      if (filteredReports.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">No Reports Yet</div>
+            <div class="empty-subtext">${isAdmin ? 'No reports have been submitted' : 'Submit your first report to see it here'}</div>
+          </div>
+        `;
+        return;
+      }
+
+      const reportsHTML = filteredReports.map(report => {
+        const date = new Date(report.timestamp);
+        const formattedDate = date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        const formattedTime = date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+
+        // Use the photo from the report, fallback to issue type photo if needed
+        const photoSrc = report.photo || issuePhotos[report.issue_type] || issuePhotos['Other Damage'];
+
+        return `
+          <div class="report-card">
+            <img src="${photoSrc}" alt="${report.issue_type}" class="report-image" onerror="this.src='${issuePhotos[report.issue_type] || issuePhotos['Other Damage']}';">
+            <div class="report-content">
+              ${isAdmin ? `<div class="report-user">👤 ${report.username}</div>` : ''}
+              <div class="report-badge">${getIssueIcon(report.issue_type)} ${report.issue_type}</div>
+              <div class="report-location">
+                <span>📍</span>
+                <span>${report.location}</span>
+              </div>
+              <div class="report-description">${report.description}</div>
+              <div class="report-meta">
+                <span>📅</span>
+                <span>${formattedDate}</span>
+                <span>•</span>
+                <span>🕐</span>
+                <span>${formattedTime}</span>
+              </div>
+              <button class="directions-button" onclick="openDirections('${report.location.replace(/'/g, "\\'")}')">
+                <span>🗺️</span>
+                <span>Get Directions</span>
+              </button>
+              ${isAdmin ? `<button class="delete-button" onclick="deleteReport('${report.__backendId}')" id="delete-${report.__backendId}">
+                <span>🗑️</span>
+                <span>Delete Report</span>
+              </button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = reportsHTML;
+    }
+
+    // Delete report (admin only)
+    async function deleteReport(backendId) {
+      const report = allData.find(item => item.__backendId === backendId);
+      if (!report) return;
+
+      const deleteBtn = document.getElementById(`delete-${backendId}`);
+      if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<span>⏳</span><span>Deleting...</span>';
+      }
+
+      const result = await window.dataSdk.delete(report);
+
+      if (result.isOk) {
+        showToast('✓ Report deleted successfully!');
+      } else {
+        showToast('Failed to delete report. Please try again.', '#ef4444');
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerHTML = '<span>🗑️</span><span>Delete Report</span>';
+        }
+      }
+    }
+
+    // Render cities
+    function renderCities() {
+      const container = document.getElementById('cityList');
+      
+      const cities = allData.filter(item => item.type === 'city');
+      
+      // Default cities if none exist
+      const defaultCities = [
+        { city: 'Kakinada', icon: '🏙️' },
+        { city: 'Samarlakota', icon: '🏙️' },
+        { city: 'Peddapuram', icon: '🏙️' }
+      ];
+
+      const cityList = cities.length > 0 ? cities : defaultCities;
+
+      const citiesHTML = cityList.map(city => `
+        <div class="city-card" onclick="showCityAreas('${city.city || city.place_name}')">
+          <span class="city-icon">${city.icon}</span>
+          <span class="city-name">${city.city || city.place_name}</span>
+          <span class="city-arrow">→</span>
+        </div>
+      `).join('');
+
+      container.innerHTML = citiesHTML;
+    }
+
+    // Render areas for a city
+    function renderAreas() {
+      if (!currentCity) return;
+      
+      const container = document.getElementById('areasList');
+      const areas = allData.filter(item => item.type === 'area' && item.city === currentCity);
+
+      // Default areas for Kakinada
+      const defaultAreas = currentCity === 'Kakinada' ? [
+        { place_name: 'Kakinada Port', icon: '⚓' },
+        { place_name: 'JP Bridge', icon: '🌉' },
+        { place_name: 'Balaji Cheruvu Centre', icon: '🏛️' },
+        { place_name: 'JNTUK Road', icon: '🎓' },
+        { place_name: 'Food Street', icon: '🍴' }
+      ] : [];
+
+      const areaList = areas.length > 0 ? areas : defaultAreas;
+
+      if (areaList.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🗺️</div>
+            <div class="empty-text">No Areas Added</div>
+            <div class="empty-subtext">${isAdmin ? 'Click "Add Area" to add traffic areas' : 'Traffic area details will be updated soon'}</div>
+          </div>
+        `;
+        return;
+      }
+
+      const areasHTML = areaList.map(area => `
+        <div class="area-card">
+          <span class="area-icon">${area.icon}</span>
+          <div class="area-info">
+            <div class="area-name">${area.place_name}</div>
+            <span class="area-badge">High Traffic</span>
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = areasHTML;
+    }
+
+    function openDirections(location) {
+      const encodedLocation = encodeURIComponent(location);
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+      window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    function getIssueIcon(issueType) {
+      const icons = {
+        'Pothole': '🕳️',
+        'Traffic Signal': '🚦',
+        'Broken Road': '🚧',
+        'Missing Zebra Crossing': '⚠️',
+        'Street Light': '💡',
+        'Open Manhole': '🔴',
+        'Missing Road Sign': '🪧',
+        'Other Damage': '⚡'
+      };
+      return icons[issueType] || '🚧';
+    }
+
+    // Tab switching
+    function switchServiceTab(tabName) {
+      document.querySelectorAll('.service-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      if (tabName === 'report') {
+        document.getElementById('reportTab').classList.add('active');
+        document.getElementById('reportTabContent').classList.add('active');
+      } else if (tabName === 'submissions') {
+        document.getElementById('submissionsTab').classList.add('active');
+        document.getElementById('submissionsTabContent').classList.add('active');
+        renderRecentReports();
+      }
+    }
+
+    // Cancel report
+    function cancelReport() {
+      document.getElementById('reportForm').reset();
+      document.getElementById('photoPreview').style.display = 'none';
+      document.getElementById('uploadPrompt').style.display = 'block';
+      document.getElementById('photoUploadArea').classList.remove('has-photo');
+      
+      document.querySelectorAll('.issue-option').forEach(opt => opt.classList.remove('selected'));
+      document.querySelector('.issue-option').classList.add('selected');
+      selectedIssueType = 'Pothole';
+      selectedPhoto = issuePhotos['Pothole'];
+      
+      const preview = document.getElementById('photoPreview');
+      const uploadArea = document.getElementById('photoUploadArea');
+      const uploadPrompt = document.getElementById('uploadPrompt');
+      preview.src = selectedPhoto;
+      preview.style.display = 'block';
+      uploadPrompt.style.display = 'none';
+      uploadArea.classList.add('has-photo');
+      
+      showToast('Report cancelled', '#94a3b8');
+    }
+
+    // Show city areas
+    function showCityAreas(cityName) {
+      currentCity = cityName;
+      document.getElementById('cityAreasTitle').textContent = `${cityName} - Traffic Areas`;
+      renderAreas();
+      showScreen('cityAreasScreen');
+    }
+
+    // Add city modal
+    function showAddCityModal() {
+      document.getElementById('addCityModal').classList.add('show');
+      selectedCityIcon = '🏙️';
+    }
+
+    function closeAddCityModal() {
+      document.getElementById('addCityModal').classList.remove('show');
+      document.getElementById('addCityForm').reset();
+      document.querySelectorAll('#addCityModal .issue-option').forEach(opt => opt.classList.remove('selected'));
+      document.querySelector('#addCityModal .issue-option').classList.add('selected');
+    }
+
+    function selectCityIcon(element) {
+      document.querySelectorAll('#addCityModal .issue-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      element.classList.add('selected');
+      selectedCityIcon = element.dataset.icon;
+    }
+
+    document.getElementById('addCityForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const cityName = document.getElementById('cityName').value;
+      const submitBtn = document.getElementById('addCitySubmit');
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Adding...';
+
+      const result = await window.dataSdk.create({
+        type: 'city',
+        place_name: cityName,
+        city: cityName,
+        icon: selectedCityIcon
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add City';
+
+      if (result.isOk) {
+        showToast('✓ City added successfully!');
+        closeAddCityModal();
+      } else {
+        showToast('Failed to add city. Please try again.', '#ef4444');
+      }
+    });
+
+    // Add area modal
+    function showAddAreaModal() {
+      document.getElementById('addAreaModal').classList.add('show');
+      selectedAreaIcon = '     ';
+    }
+
+    function closeAddAreaModal() {
+      document.getElementById('addAreaModal').classList.remove('show');
+      document.getElementById('addAreaForm').reset();
+      document.querySelectorAll('#addAreaModal .issue-option').forEach(opt => opt.classList.remove('selected'));
+      document.querySelector('#addAreaModal .issue-option').classList.add('selected');
+    }
+
+    function selectAreaIcon(element) {
+      document.querySelectorAll('#addAreaModal .issue-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      element.classList.add('selected');
+      selectedAreaIcon = element.dataset.icon;
+    }
+
+    document.getElementById('addAreaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const areaName = document.getElementById('areaName').value;
+      const submitBtn = document.getElementById('addAreaSubmit');
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Adding...';
+
+      const result = await window.dataSdk.create({
+        type: 'area',
+        place_name: areaName,
+        city: currentCity,
+        icon: selectedAreaIcon
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add Area';
+
+      if (result.isOk) {
+        showToast('✓ Area added successfully!');
+        closeAddAreaModal();
+      } else {
+        showToast('Failed to add area. Please try again.', '#ef4444');
+      }
+    });
+
+    // Navigation functions
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+      });
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function showDashboard() {
+      showScreen('dashboardScreen');
+    }
+
+    function showTrafficRules() {
+      showScreen('trafficRulesScreen');
+    }
+
+    function showTrafficAreas() {
+      renderCities();
+      showScreen('trafficAreasScreen');
+    }
+
+    function showSocialServices() {
+      showScreen('socialServicesScreen');
+    }
+
+    // Toast notification
+    function showToast(message, color = '#22c55e') {
+      const existingToast = document.querySelector('.toast');
+      if (existingToast) {
+        existingToast.remove();
+      }
+
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toast.style.background = color;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    // Logout function
+    function logout() {
+      currentUser = null;
+      isAdmin = false;
+      
+      // Reset form
+      document.getElementById('loginForm').reset();
+      document.getElementById('errorMessage').classList.remove('show');
+      
+      showToast('👋 Logged out successfully', '#3b82f6');
+      showScreen('loginScreen');
+    }
+
+    // Show rule details
+    function showRuleDetails(ruleType) {
+      const ruleData = {
+        helmet: {
+          title: 'Always Wear Helmet',
+          icon: '🛑',
+          law: 'Section 129 of Motor Vehicles Act, 1988',
+          lawDescription: 'Every person driving or riding (otherwise than in a side car, on a motor cycle of any class or description) shall, while in a public place, wear protective headgear conforming to the standards of Bureau of Indian Standards.',
+          fine: '₹1,000 + Suspension of License for 3 months',
+          process: [
+            'Traffic police will stop you if riding without helmet',
+            'Challan will be issued on the spot',
+            'Vehicle may be seized until compliance',
+            'License suspension for repeated offenses'
+          ],
+          whatToDo: [
+            'Always wear ISI-marked helmet',
+            'Ensure proper fitting and fastening of helmet',
+            'Both rider and pillion must wear helmets',
+            'Replace helmet after any accident',
+            'Keep helmet visor clean for visibility'
+          ],
+          consequences: 'Not wearing helmet increases head injury risk by 300%. It is the leading cause of death in two-wheeler accidents.'
+        },
+        signal: {
+          title: 'Obey Traffic Signals',
+          icon: '🚦',
+          law: 'Section 119 of Motor Vehicles Act, 1988',
+          lawDescription: 'Every driver of a motor vehicle shall obey all traffic signs and traffic signals. Red light means stop, yellow means prepare to stop, and green means go.',
+          fine: '₹5,000 + Possible License Suspension',
+          process: [
+            'CCTV cameras automatically capture violations',
+            'E-challan will be sent to registered address',
+            'Can also be stopped by traffic police',
+            'Court appearance may be required for repeated violations'
+          ],
+          whatToDo: [
+            'Always stop at red lights completely',
+            'Wait behind the stop line',
+            'Check for pedestrians before proceeding on green',
+            'Follow yellow light cautiously (prepare to stop)',
+            'Look left-right before moving on green'
+          ],
+          consequences: 'Red light jumping causes 30% of intersection accidents and can lead to serious injuries or death.'
+        },
+        speed: {
+          title: 'Speed Limits',
+          icon: '⚡',
+          law: 'Section 183 of Motor Vehicles Act, 1988',
+          lawDescription: 'No person shall drive a motor vehicle in any public place at a speed exceeding the maximum speed limits. Speed limits: City roads - 50 km/h, Highways - 80 km/h for cars, 40 km/h for two-wheelers.',
+          fine: '₹1,000 - ₹2,000 (First offense), ₹2,000 - ₹4,000 (Repeat)',
+          process: [
+            'Speed cameras automatically detect violations',
+            'Radar guns used by traffic police',
+            'E-challan sent with photo evidence',
+            'Higher fines for excessive speeding (above 100 km/h)'
+          ],
+          whatToDo: [
+            'Follow posted speed limit signs',
+            'Reduce speed in school zones (30 km/h)',
+            'Slow down in residential areas',
+            'Adjust speed according to weather and road conditions',
+            'Use speedometer to monitor your speed'
+          ],
+          consequences: 'Overspeeding is responsible for 60% of fatal road accidents. Higher speed reduces reaction time and increases impact force.'
+        },
+        seatbelt: {
+          title: 'Wear Seat Belt',
+          icon: '🔒',
+          law: 'Section 138(3) of Motor Vehicles Act, 1988',
+          lawDescription: 'Person driving a motor vehicle and persons seated in the front seat and rear seat shall wear seat belts while the vehicle is in motion.',
+          fine: '₹1,000',
+          process: [
+            'Traffic police conduct random checks',
+            'On-spot challan issuance',
+            'All passengers (front and back) must wear seatbelts',
+            'Repeated violations lead to license points'
+          ],
+          whatToDo: [
+            'Wear seatbelt before starting the vehicle',
+            'Ensure all passengers buckle up',
+            'Check that seatbelt is properly fastened',
+            'Pregnant women should wear seatbelt below belly',
+            'Children under 12 should use child restraint seats'
+          ],
+          consequences: 'Seatbelts reduce risk of fatal injury by 50% and serious injury by 45%. They prevent ejection from vehicle during collision.'
+        },
+        drunk: {
+          title: 'No Drunk Driving',
+          icon: '🚫',
+          law: 'Section 185 of Motor Vehicles Act, 1988',
+          lawDescription: 'Whoever, while driving, or attempting to drive, a motor vehicle has in his blood, alcohol exceeding 30 mg per 100 ml of blood, shall be punishable.',
+          fine: '₹10,000 + 6 months imprisonment (First), ₹15,000 + 2 years imprisonment (Repeat)',
+          process: [
+            'Breathalyzer test conducted by police',
+            'Blood sample may be taken for confirmation',
+            'Immediate arrest and vehicle impoundment',
+            'Court appearance mandatory',
+            'License suspension for minimum 6 months'
+          ],
+          whatToDo: [
+            'Never drive after consuming alcohol',
+            'Use designated driver or taxi services',
+            'Wait at least 8-12 hours after drinking',
+            'Understand "morning after" alcohol still affects you',
+            'Plan ahead - arrange alternate transport'
+          ],
+          consequences: 'Alcohol impairs judgment, reduces reaction time, and affects vision. 30% of fatal accidents involve drunk driving.'
+        },
+        mobile: {
+          title: 'No Mobile While Driving',
+          icon: '📱',
+          law: 'Section 184 of Motor Vehicles Act, 1988',
+          lawDescription: 'Using mobile phone while driving is dangerous driving and illegal. This includes handheld calls, texting, or using apps.',
+          fine: '₹1,000 - ₹5,000',
+          process: [
+            'Police can stop you if seen using phone',
+            'CCTV evidence can be used',
+            'On-spot fine issuance',
+            'Repeated violations increase penalties'
+          ],
+          whatToDo: [
+            'Use hands-free devices for calls',
+            'Pull over safely before using phone',
+            'Set navigation before starting journey',
+            'Put phone in silent/driving mode',
+            'Ask passenger to handle phone tasks'
+          ],
+          consequences: 'Using mobile while driving increases accident risk by 400%. Texting takes eyes off road for average 5 seconds - enough to cover a football field at highway speed.'
+        },
+        triple: {
+          title: 'No Triple Riding',
+          icon: '👥',
+          law: 'Section 128 of Motor Vehicles Act, 1988',
+          lawDescription: 'No person shall drive a two-wheeler carrying more than one person in addition to the driver. Three people on a two-wheeler is illegal.',
+          fine: '₹1,000 + Vehicle seizure',
+          process: [
+            'Traffic police stop and issue challan',
+            'All riders may be fined',
+            'Vehicle can be impounded',
+            'Additional charges for child endangerment if applicable'
+          ],
+          whatToDo: [
+            'Maximum 2 people allowed (driver + 1 pillion)',
+            'Use separate vehicles if more people',
+            'Ensure pillion rider wears helmet',
+            'Children should be of appropriate age and size',
+            'Pillion should sit properly with footrests'
+          ],
+          consequences: 'Triple riding severely affects vehicle balance and braking. It is a major cause of two-wheeler accidents causing multiple casualties.'
+        },
+        pedestrian: {
+          title: 'Respect Pedestrians',
+          icon: '🚶',
+          law: 'Section 177 of Motor Vehicles Act, 1988',
+          lawDescription: 'Drivers must give way to pedestrians at zebra crossings and intersections. Pedestrians have right of way.',
+          fine: '₹500 - ₹1,000',
+          process: [
+            'Traffic police observe driver behavior',
+            'CCTV footage used as evidence',
+            'Complaints from pedestrians considered',
+            'On-spot challan for violations'
+          ],
+          whatToDo: [
+            'Always stop at zebra crossings if pedestrian waiting',
+            'Slow down near schools and hospitals',
+            'Extra caution in residential areas',
+            'Watch for children and elderly',
+            'Use horn minimally near pedestrian areas'
+          ],
+          consequences: 'Pedestrians are the most vulnerable road users. 40% of road accident deaths involve pedestrians, most due to driver negligence.'
+        },
+        license: {
+          title: 'Valid Driving License',
+          icon: '🪪',
+          law: 'Section 3 & 181 of Motor Vehicles Act, 1988',
+          lawDescription: 'No person shall drive a motor vehicle in any public place unless he holds an effective driving licence issued to him authorizing him to drive the vehicle.',
+          fine: '₹5,000',
+          process: [
+            'License check during routine police stops',
+            'Verification through digital database',
+            'Vehicle impounded if no valid license',
+            'Court proceedings for driving without license',
+            'Criminal charges for repeated violations'
+          ],
+          whatToDo: [
+            'Always carry original or digital license',
+            'Renew license before expiry date',
+            'Ensure license class matches vehicle type',
+            'Update address on license if changed',
+            'Apply for permanent license after learning license period'
+          ],
+          consequences: 'Driving without license shows lack of training and testing. It voids vehicle insurance and you are liable for all damages in accidents.'
+        },
+        insurance: {
+          title: 'Vehicle Insurance',
+          icon: '📄',
+          law: 'Section 146 of Motor Vehicles Act, 1988',
+          lawDescription: 'No person shall use a motor vehicle in a public place unless there is in force a policy of insurance covering third-party risks.',
+          fine: '₹2,000 (First offense), ₹4,000 (Subsequent)',
+          process: [
+            'Insurance verification during police checks',
+            'Digital verification through Vahan database',
+            'Vehicle impounded until insurance obtained',
+            'Court proceedings possible',
+            'Additional penalty for lapsed insurance'
+          ],
+          whatToDo: [
+            'Maintain valid third-party insurance minimum',
+            'Renew insurance before expiry',
+            'Keep insurance certificate in vehicle',
+            'Consider comprehensive insurance for better coverage',
+            'Update insurance after vehicle sale/purchase'
+          ],
+          consequences: 'Without insurance, you are personally liable for all accident damages. Third-party claims can be financially devastating and lead to legal troubles.'
+        },
+        parking: {
+          title: 'No Wrong Parking',
+          icon: '🅿️',
+          law: 'Section 122 of Motor Vehicles Act, 1988',
+          lawDescription: 'Parking in no-parking zones, blocking roads, parking on pavements, or obstructing traffic flow is illegal.',
+          fine: '₹500 - ₹1,000 + Towing charges',
+          process: [
+            'Traffic police or parking marshals issue tickets',
+            'Vehicle may be towed to impound yard',
+            'Towing and storage charges additional',
+            'Photos taken as evidence',
+            'E-challan for some violations'
+          ],
+          whatToDo: [
+            'Park only in designated parking areas',
+            'Never block emergency access routes',
+            'Avoid parking on pavements',
+            'Check for no-parking signs',
+            'Use paid parking facilities in busy areas'
+          ],
+          consequences: 'Wrong parking obstructs traffic flow, blocks emergency vehicles, and creates safety hazards. It causes congestion and accidents.'
+        },
+        redlight: {
+          title: 'No Red Light Jumping',
+          icon: '🔴',
+          law: 'Section 119 of Motor Vehicles Act, 1988',
+          lawDescription: 'Crossing a stop line or intersection after traffic signal turns red is illegal and extremely dangerous.',
+          fine: '₹5,000 + License suspension possible',
+          process: [
+            'Automated cameras capture violations',
+            'Timestamp and photo evidence recorded',
+            'E-challan sent to registered address',
+            'Can appear in traffic court',
+            'License points deducted for repeat violations'
+          ],
+          whatToDo: [
+            'Stop completely when light turns red',
+            'Wait behind the white stop line',
+            'Do not inch forward during red light',
+            'Watch for pedestrians before moving on green',
+            'If you accidentally cross, do not reverse'
+          ],
+          consequences: 'Red light jumping is a leading cause of T-bone collisions which are often fatal. It endangers cross-traffic and pedestrians.'
+        },
+        overtake: {
+          title: 'Safe Overtaking',
+          icon: '↔️',
+          law: 'Section 177 of Motor Vehicles Act, 1988',
+          lawDescription: 'Overtaking must be done safely from the right side only, with proper indication, and only when it is safe to do so.',
+          fine: '₹500 - ₹2,000',
+          process: [
+            'Police observe dangerous overtaking',
+            'Dash cam or CCTV evidence',
+            'On-spot challan issuance',
+            'Higher fines for dangerous maneuvers'
+          ],
+          whatToDo: [
+            'Use indicators before overtaking',
+            'Check mirrors and blind spots',
+            'Overtake only from the right side',
+            'Never overtake at curves or hills',
+            'Do not overtake near pedestrian crossings',
+            'Ensure sufficient gap after overtaking'
+          ],
+          consequences: 'Wrong overtaking causes head-on collisions which have highest fatality rates. 25% of highway accidents involve improper overtaking.'
+        },
+        pollution: {
+          title: 'Pollution Certificate (PUC)',
+          icon: '🌿',
+          law: 'Section 190(2) of Motor Vehicles Act, 1988',
+          lawDescription: 'Every motor vehicle must have a valid Pollution Under Control (PUC) certificate showing that emissions are within prescribed limits.',
+          fine: '₹10,000',
+          process: [
+            'Police check during routine stops',
+            'Testing centers conduct emission tests',
+            'Certificate valid for 6 months to 1 year',
+            'Digital verification possible',
+            'Vehicle may be impounded without valid PUC'
+          ],
+          whatToDo: [
+            'Get PUC test done every 6 months',
+            'Keep certificate in vehicle',
+            'Regular vehicle maintenance reduces emissions',
+            'Get test from authorized centers only',
+            'Check expiry date and renew on time'
+          ],
+          consequences: 'Vehicles without PUC contribute to air pollution causing health issues. High emissions indicate poor engine condition requiring maintenance.'
+        }
+      };
+
+      const rule = ruleData[ruleType];
+      if (!rule) return;
+
+      document.getElementById('ruleDetailsTitle').textContent = rule.title;
+      
+      const whatToDoList = rule.whatToDo.map(item => `<li>${item}</li>`).join('');
+      const processList = rule.process.map(item => `<li>${item}</li>`).join('');
+
+      document.getElementById('ruleDetailsContent').innerHTML = `
+        <div class="detail-section">
+          <div class="detail-header">
+            <span class="detail-icon">${rule.icon}</span>
+            <h3 class="detail-heading">Overview</h3>
+          </div>
+          <div class="detail-content">
+            <p>${rule.lawDescription}</p>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-header">
+            <span class="detail-icon">⚖️</span>
+            <h3 class="detail-heading">Legal Provisions</h3>
+          </div>
+          <div class="law-box">
+            <div class="law-title">${rule.law}</div>
+            <div class="law-text">${rule.lawDescription}</div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-header">
+            <span class="detail-icon">💰</span>
+            <h3 class="detail-heading">Penalties & Fines</h3>
+          </div>
+          <div class="fine-box">
+            <div class="fine-amount">${rule.fine}</div>
+            <div class="fine-text">Fine amount as per Motor Vehicles Act</div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-header">
+            <span class="detail-icon">📋</span>
+            <h3 class="detail-heading">Enforcement Process</h3>
+          </div>
+          <div class="detail-content">
+            <ul class="detail-list">
+              ${processList}
+            </ul>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-header">
+            <span class="detail-icon">✅</span>
+            <h3 class="detail-heading">What You Need To Do</h3>
+          </div>
+          <div class="detail-content">
+            <ul class="detail-list">
+              ${whatToDoList}
+            </ul>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-header">
+            <span class="detail-icon">⚠️</span>
+            <h3 class="detail-heading">Safety Consequences</h3>
+          </div>
+          <div class="warning-box">
+            <div class="warning-text">${rule.consequences}</div>
+          </div>
+        </div>
+      `;
+
+      showScreen('ruleDetailsScreen');
+    }
+
+    // Initialize app on load
+    initApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b947520a38c2e84',t:'MTc2NzYzMTY0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
